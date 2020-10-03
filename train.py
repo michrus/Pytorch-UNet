@@ -16,10 +16,23 @@ from torch.utils.tensorboard import SummaryWriter
 from utils.dataset import BasicDataset
 from torch.utils.data import DataLoader, random_split
 
-dir_img = 'data/imgs/'
-dir_mask = 'data/masks/'
+dir_img_train = 'data/train/imgs/'
+dir_mask_train = 'data/train/masks/'
+dir_img_test = 'data/test/imgs/'
+dir_mask_test = 'data/test/masks/'
 dir_checkpoint = 'checkpoints/'
 
+def validation_only(net,
+                    batch_size,
+                    img_scale=0.5,
+                    device):
+    dataset = BasicDataset(dir_img_test, dir_mask_test, img_scale)
+    val_loader = DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=8, pin_memory=True, drop_last=True)
+    val_score = eval_net(net, val_loader, device)
+    if net.n_classes > 1:
+        logging.info('Validation cross entropy: {}'.format(val_score))
+    else:
+        logging.info('Validation Dice Coeff: {}'.format(val_score))
 
 def train_net(net,
               device,
@@ -30,7 +43,7 @@ def train_net(net,
               save_cp=True,
               img_scale=0.5):
 
-    dataset = BasicDataset(dir_img, dir_mask, img_scale)
+    dataset = BasicDataset(dir_img_train, dir_mask_train, img_scale)
     n_val = int(len(dataset) * val_percent)
     n_train = len(dataset) - n_val
     train, val = random_split(dataset, [n_train, n_val])
@@ -138,6 +151,8 @@ def get_args():
                         help='Downscaling factor of the images')
     parser.add_argument('-v', '--validation', dest='val', type=float, default=10.0,
                         help='Percent of the data that is used as validation (0-100)')
+    parser.add_argument('-t', '--test', dest='test', action='store_true',
+                        help='Perform validation only and display score')
 
     return parser.parse_args()
 
@@ -171,13 +186,19 @@ if __name__ == '__main__':
     # cudnn.benchmark = True
 
     try:
-        train_net(net=net,
-                  epochs=args.epochs,
-                  batch_size=args.batchsize,
-                  lr=args.lr,
-                  device=device,
-                  img_scale=args.scale,
-                  val_percent=args.val / 100)
+        if args.test:
+            validation_only(net=net,
+                            batch_size=args.batch_size,
+                            img_scale=args.scale,
+                            device=device) 
+        else:
+            train_net(net=net,
+                      epochs=args.epochs,
+                      batch_size=args.batchsize,
+                      lr=args.lr,
+                      device=device,
+                      img_scale=args.scale,
+                      val_percent=args.val / 100)
     except KeyboardInterrupt:
         torch.save(net.state_dict(), 'INTERRUPTED.pth')
         logging.info('Saved interrupt')
