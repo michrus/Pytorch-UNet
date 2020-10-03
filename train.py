@@ -23,9 +23,10 @@ dir_mask_test = 'data/test/masks/'
 dir_checkpoint = 'checkpoints/'
 
 def validation_only(net,
-                    batch_size,
-                    img_scale=0.5,
-                    device):
+                    device,
+                    batch_size=1,
+                    img_scale=0.5):
+
     dataset = BasicDataset(dir_img_test, dir_mask_test, img_scale)
     val_loader = DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=8, pin_memory=True, drop_last=True)
     val_score = eval_net(net, val_loader, device)
@@ -188,9 +189,9 @@ if __name__ == '__main__':
     try:
         if args.test:
             validation_only(net=net,
-                            batch_size=args.batch_size,
-                            img_scale=args.scale,
-                            device=device) 
+                            device=device,
+                            batch_size=args.batchsize,
+                            img_scale=args.scale) 
         else:
             train_net(net=net,
                       epochs=args.epochs,
