@@ -25,9 +25,10 @@ dir_checkpoint = 'checkpoints/'
 def validation_only(net,
                     device,
                     batch_size=1,
-                    img_scale=0.5):
+                    width=0, 
+                    height=0):
 
-    dataset = BasicDataset(dir_img_test, dir_mask_test, img_scale)
+    dataset = BasicDataset(dir_img_test, dir_mask_test, width, height)
     val_loader = DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=8, pin_memory=True, drop_last=True)
     val_score = eval_net(net, val_loader, device)
     if net.n_classes > 1:
@@ -42,16 +43,17 @@ def train_net(net,
               lr=0.001,
               val_percent=0.1,
               save_cp=True,
-              img_scale=0.5):
+              width=0, 
+              height=0):
 
-    dataset = BasicDataset(dir_img_train, dir_mask_train, img_scale)
+    dataset = BasicDataset(dir_img_train, dir_mask_train, width, height)
     n_val = int(len(dataset) * val_percent)
     n_train = len(dataset) - n_val
     train, val = random_split(dataset, [n_train, n_val])
     train_loader = DataLoader(train, batch_size=batch_size, shuffle=True, num_workers=8, pin_memory=True)
     val_loader = DataLoader(val, batch_size=batch_size, shuffle=False, num_workers=8, pin_memory=True, drop_last=True)
 
-    writer = SummaryWriter(comment=f'LR_{lr}_BS_{batch_size}_SCALE_{img_scale}')
+    writer = SummaryWriter(comment=f'LR_{lr}_BS_{batch_size}_RESIZE_{width}x{height}')
     global_step = 0
 
     logging.info(f'''Starting training:
@@ -62,7 +64,7 @@ def train_net(net,
         Validation size: {n_val}
         Checkpoints:     {save_cp}
         Device:          {device.type}
-        Images scaling:  {img_scale}
+        Images resizing: {width}x{height}
     ''')
 
     optimizer = optim.RMSprop(net.parameters(), lr=lr, weight_decay=1e-8, momentum=0.9)
@@ -148,8 +150,8 @@ def get_args():
                         help='Learning rate', dest='lr')
     parser.add_argument('-f', '--load', dest='load', type=str, default=False,
                         help='Load model from a .pth file')
-    parser.add_argument('-s', '--scale', dest='scale', type=float, default=0.5,
-                        help='Downscaling factor of the images')
+    parser.add_argument('-r', '--resize', dest='resize_string', type=str,
+                        help='Size images should be resized to, in format: NxM. Example: 24x24')
     parser.add_argument('-v', '--validation', dest='val', type=float, default=10.0,
                         help='Percent of the data that is used as validation (0-100)')
     parser.add_argument('-t', '--test', dest='test', action='store_true',
@@ -170,7 +172,7 @@ if __name__ == '__main__':
     #   - For 1 class and background, use n_classes=1
     #   - For 2 classes, use n_classes=1
     #   - For N > 2 classes, use n_classes=N
-    net = UNet(n_channels=3, n_classes=1, bilinear=True)
+    net = UNet(n_channels=1, n_classes=1, bilinear=True)
     logging.info(f'Network:\n'
                  f'\t{net.n_channels} input channels\n'
                  f'\t{net.n_classes} output channels (classes)\n'
@@ -186,19 +188,29 @@ if __name__ == '__main__':
     # faster convolutions, but more memory
     # cudnn.benchmark = True
 
+    if args.resize_string:
+        resize = list(map(int, resize_string.split("x")))
+        img_width = resize[0]
+        img_height = resize[1]
+    else:
+        img_width = 0
+        img_height = 0
+
     try:
         if args.test:
             validation_only(net=net,
                             device=device,
                             batch_size=args.batchsize,
-                            img_scale=args.scale) 
+                            width=img_width,
+                            height=img_height) 
         else:
             train_net(net=net,
                       epochs=args.epochs,
                       batch_size=args.batchsize,
                       lr=args.lr,
                       device=device,
-                      img_scale=args.scale,
+                      width=img_width,
+                      height=img_height,
                       val_percent=args.val / 100)
     except KeyboardInterrupt:
         torch.save(net.state_dict(), 'INTERRUPTED.pth')

@@ -9,12 +9,17 @@ from PIL import Image
 
 
 class BasicDataset(Dataset):
-    def __init__(self, imgs_dir, masks_dir, scale=1, mask_suffix=''):
+    def __init__(self, imgs_dir, masks_dir, width=0, height=0, mask_suffix=''):
         self.imgs_dir = imgs_dir
         self.masks_dir = masks_dir
-        self.scale = scale
+        self.width = width
+        self.height = height
         self.mask_suffix = mask_suffix
-        assert 0 < scale <= 1, 'Scale must be between 0 and 1'
+
+        if width <= 0:
+            logging.warning("Using original image width")
+        if height <= 0:
+            logging.warning("Using original image height")
 
         self.ids = [splitext(file)[0] for file in listdir(imgs_dir)
                     if not file.startswith('.')]
@@ -24,11 +29,12 @@ class BasicDataset(Dataset):
         return len(self.ids)
 
     @classmethod
-    def preprocess(cls, pil_img, scale):
+    def preprocess(cls, pil_img, width, height):
         w, h = pil_img.size
-        newW, newH = int(scale * w), int(scale * h)
-        assert newW > 0 and newH > 0, 'Scale is too small'
-        pil_img = pil_img.resize((newW, newH))
+        newW = width if width > 0 else w
+        newH = height if height > 0 else h
+        
+        pil_img = pil_img.convert("L").resize((newW, newH))
 
         img_nd = np.array(pil_img)
 
@@ -57,8 +63,8 @@ class BasicDataset(Dataset):
         assert img.size == mask.size, \
             f'Image and mask {idx} should be the same size, but are {img.size} and {mask.size}'
 
-        img = self.preprocess(img, self.scale)
-        mask = self.preprocess(mask, self.scale)
+        img = self.preprocess(img, self.width, self.height)
+        mask = self.preprocess(mask, self.width, self.height)
 
         return {
             'image': torch.from_numpy(img).type(torch.FloatTensor),
@@ -67,5 +73,5 @@ class BasicDataset(Dataset):
 
 
 class CarvanaDataset(BasicDataset):
-    def __init__(self, imgs_dir, masks_dir, scale=1):
-        super().__init__(imgs_dir, masks_dir, scale, mask_suffix='_mask')
+    def __init__(self, imgs_dir, masks_dir, width, height):
+        super().__init__(imgs_dir, masks_dir, width, height, mask_suffix='_mask')
