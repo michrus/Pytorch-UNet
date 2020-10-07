@@ -16,11 +16,12 @@ from utils.dataset import BasicDataset
 def predict_img(net,
                 full_img,
                 device,
-                scale_factor=1,
+                width=img_width,
+                height=img_height,
                 out_threshold=0.5):
     net.eval()
 
-    img = torch.from_numpy(BasicDataset.preprocess(full_img, scale_factor))
+    img = torch.from_numpy(BasicDataset.preprocess(full_img, width, height))
 
     img = img.unsqueeze(0)
     img = img.to(device=device, dtype=torch.float32)
@@ -69,9 +70,8 @@ def get_args():
     parser.add_argument('--mask-threshold', '-t', type=float,
                         help="Minimum probability value to consider a mask pixel white",
                         default=0.5)
-    parser.add_argument('--scale', '-s', type=float,
-                        help="Scale factor for the input images",
-                        default=0.5)
+    parser.add_argument('-r', '--resize', dest='resize_string', type=str,
+                        help='Size images should be resized to, in format: NxM. Example: 24x24')
 
     return parser.parse_args()
 
@@ -113,6 +113,14 @@ if __name__ == "__main__":
 
     logging.info("Model loaded !")
 
+    if args.resize_string:
+        resize = list(map(int, resize_string.split("x")))
+        img_width = resize[0]
+        img_height = resize[1]
+    else:
+        img_width = 0
+        img_height = 0
+
     for i, fn in enumerate(in_files):
         logging.info("\nPredicting image {} ...".format(fn))
 
@@ -120,7 +128,8 @@ if __name__ == "__main__":
 
         mask = predict_img(net=net,
                            full_img=img,
-                           scale_factor=args.scale,
+                           width=img_width,
+                           height=img_height,
                            out_threshold=args.mask_threshold,
                            device=device)
 
