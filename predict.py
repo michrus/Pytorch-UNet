@@ -16,12 +16,12 @@ from utils.dataset import BasicDataset
 def predict_img(net,
                 full_img,
                 device,
-                width=img_width,
-                height=img_height,
+                img_width=0,
+                img_height=0,
                 out_threshold=0.5):
     net.eval()
 
-    img = torch.from_numpy(BasicDataset.preprocess(full_img, width, height))
+    img = torch.from_numpy(BasicDataset.preprocess(full_img, img_width, img_height))
 
     img = img.unsqueeze(0)
     img = img.to(device=device, dtype=torch.float32)
@@ -128,8 +128,8 @@ if __name__ == "__main__":
 
         mask = predict_img(net=net,
                            full_img=img,
-                           width=img_width,
-                           height=img_height,
+                           img_width=img_width,
+                           img_height=img_height,
                            out_threshold=args.mask_threshold,
                            device=device)
 

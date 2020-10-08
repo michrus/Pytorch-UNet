@@ -24,10 +24,10 @@ dir_checkpoint = 'checkpoints/'
 def validation_only(net,
                     device,
                     batch_size=1,
-                    width=0, 
-                    height=0):
+                    img_width=0, 
+                    img_height=0):
 
-    dataset = BasicDataset(dir_img_test, dir_mask_test, width, height)
+    dataset = BasicDataset(dir_img_test, dir_mask_test, img_width, img_height)
     val_loader = DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=8, pin_memory=True, drop_last=True)
     val_score = eval_net(net, val_loader, device)
     if net.n_classes > 1:
@@ -42,10 +42,10 @@ def train_net(net,
               lr=0.001,
               val_percent=0.1,
               save_cp=True,
-              width=0, 
-              height=0):
+              img_width=0, 
+              img_height=0):
 
-    dataset = BasicDataset(dir_img_train, dir_mask_train, width, height)
+    dataset = BasicDataset(dir_img_train, dir_mask_train, img_width, img_height)
     n_val = int(len(dataset) * val_percent)
     n_train = len(dataset) - n_val
     train, val = random_split(dataset, [n_train, n_val])
@@ -62,7 +62,7 @@ def train_net(net,
         Validation size: {n_val}
         Checkpoints:     {save_cp}
         Device:          {device.type}
-        Images resizing: {width}x{height}
+        Images resizing: {img_width}x{img_height}
     ''')
 
     optimizer = optim.RMSprop(net.parameters(), lr=lr, weight_decay=1e-8, momentum=0.9)
@@ -186,16 +186,16 @@ if __name__ == '__main__':
             validation_only(net=net,
                             device=device,
                             batch_size=args.batchsize,
-                            width=img_width,
-                            height=img_height) 
+                            img_width=img_width,
+                            img_height=img_height) 
         else:
             train_net(net=net,
                       epochs=args.epochs,
                       batch_size=args.batchsize,
                       lr=args.lr,
                       device=device,
-                      width=img_width,
-                      height=img_height,
+                      img_width=img_width,
+                      img_height=img_height,
                       val_percent=args.val / 100)
     except KeyboardInterrupt:
         torch.save(net.state_dict(), 'INTERRUPTED.pth')
