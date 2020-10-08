@@ -114,7 +114,7 @@ if __name__ == "__main__":
     logging.info("Model loaded !")
 
     if args.resize_string:
-        resize = list(map(int, resize_string.split("x")))
+        resize = list(map(int, args.resize_string.split("x")))
         img_width = resize[0]
         img_height = resize[1]
     else:
