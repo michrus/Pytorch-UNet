@@ -9,11 +9,12 @@ from PIL import Image
 
 
 class BasicDataset(Dataset):
-    def __init__(self, imgs_dir, masks_dir, width=0, height=0, mask_suffix=''):
+    def __init__(self, imgs_dir, masks_dir, width=0, height=0, scale_factor=1.0, mask_suffix=''):
         self.imgs_dir = imgs_dir
         self.masks_dir = masks_dir
         self.width = width
         self.height = height
+        self.scale_factor = scale_factor
         self.mask_suffix = mask_suffix
 
         if width <= 0:
@@ -29,10 +30,13 @@ class BasicDataset(Dataset):
         return len(self.ids)
 
     @classmethod
-    def preprocess(cls, pil_img, width, height):
+    def preprocess(cls, pil_img, width, height, scale_factor):
         w, h = pil_img.size
         newW = width if width > 0 else w
         newH = height if height > 0 else h
+
+        newW = newW * scale_factor
+        newH = newH * scale_factor
         
         pil_img = pil_img.convert("L").resize((newW, newH))
 
@@ -63,8 +67,8 @@ class BasicDataset(Dataset):
         assert img.size == mask.size, \
             f'Image and mask {idx} should be the same size, but are {img.size} and {mask.size}'
 
-        img = self.preprocess(img, self.width, self.height)
-        mask = self.preprocess(mask, self.width, self.height)
+        img = self.preprocess(img, self.width, self.height, self.scale_factor)
+        mask = self.preprocess(mask, self.width, self.height, self.scale_factor)
 
         return {
             'image': torch.from_numpy(img).type(torch.FloatTensor),

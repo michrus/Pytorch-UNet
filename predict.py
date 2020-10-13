@@ -18,10 +18,11 @@ def predict_img(net,
                 device,
                 img_width=0,
                 img_height=0,
+                img_scale=1.0,
                 out_threshold=0.5):
     net.eval()
 
-    img = torch.from_numpy(BasicDataset.preprocess(full_img, img_width, img_height))
+    img = torch.from_numpy(BasicDataset.preprocess(full_img, img_width, img_height, img_scale))
 
     img = img.unsqueeze(0)
     img = img.to(device=device, dtype=torch.float32)
@@ -70,7 +71,7 @@ def get_args():
     parser.add_argument('--mask-threshold', '-t', type=float,
                         help="Minimum probability value to consider a mask pixel white",
                         default=0.5)
-    parser.add_argument('-s', '--scale', dest='scale', type=float, default=0.5,
+    parser.add_argument('-s', '--scale', dest='scale', type=float, default=1.0,
                         help='Downscaling factor of the images. Takes priority over resize')
     parser.add_argument('-r', '--resize', dest='resize_string', type=str,
                         help='Size images should be resized to, in format: NxM. Example: 24x24')
@@ -132,6 +133,7 @@ if __name__ == "__main__":
                            full_img=img,
                            img_width=img_width,
                            img_height=img_height,
+                           img_scale=args.scale,
                            out_threshold=args.mask_threshold,
                            device=device)
 

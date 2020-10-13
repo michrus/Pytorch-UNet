@@ -25,9 +25,10 @@ def validation_only(net,
                     device,
                     batch_size=1,
                     img_width=0, 
-                    img_height=0):
+                    img_height=0,
+                    img_scale=1.0):
 
-    dataset = BasicDataset(dir_img_test, dir_mask_test, img_width, img_height)
+    dataset = BasicDataset(dir_img_test, dir_mask_test, img_width, img_height, img_scale)
     val_loader = DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=8, pin_memory=True, drop_last=True)
     val_score = eval_net(net, val_loader, device)
     if net.n_classes > 1:
@@ -43,9 +44,10 @@ def train_net(net,
               val_percent=0.1,
               save_cp=True,
               img_width=0, 
-              img_height=0):
+              img_height=0,
+              img_scale=1.0):
 
-    dataset = BasicDataset(dir_img_train, dir_mask_train, img_width, img_height)
+    dataset = BasicDataset(dir_img_train, dir_mask_train, img_width, img_height, img_scale)
     n_val = int(len(dataset) * val_percent)
     n_train = len(dataset) - n_val
     train, val = random_split(dataset, [n_train, n_val])
@@ -63,6 +65,7 @@ def train_net(net,
         Checkpoints:     {save_cp}
         Device:          {device.type}
         Images resizing: {img_width}x{img_height}
+        Images scaling:  {img_scale}
     ''')
 
     optimizer = optim.RMSprop(net.parameters(), lr=lr, weight_decay=1e-8, momentum=0.9)
@@ -135,7 +138,7 @@ def get_args():
                         help='Learning rate', dest='lr')
     parser.add_argument('-f', '--load', dest='load', type=str, default=False,
                         help='Load model from a .pth file')
-    parser.add_argument('-s', '--scale', dest='scale', type=float, default=0.5,
+    parser.add_argument('-s', '--scale', dest='scale', type=float, default=1.0,
                         help='Downscaling factor of the images. Takes priority over resize')
     parser.add_argument('-r', '--resize', dest='resize_string', type=str,
                         help='Size images should be resized to, in format: NxM. Example: 24x24')
@@ -189,7 +192,8 @@ if __name__ == '__main__':
                             device=device,
                             batch_size=args.batchsize,
                             img_width=img_width,
-                            img_height=img_height) 
+                            img_height=img_height,
+                            img_scale=args.scale) 
         else:
             train_net(net=net,
                       epochs=args.epochs,
@@ -198,6 +202,7 @@ if __name__ == '__main__':
                       device=device,
                       img_width=img_width,
                       img_height=img_height,
+                      img_scale=args.scale,
                       val_percent=args.val / 100)
     except KeyboardInterrupt:
         torch.save(net.state_dict(), 'INTERRUPTED.pth')
