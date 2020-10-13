@@ -35,8 +35,8 @@ class BasicDataset(Dataset):
         newW = width if width > 0 else w
         newH = height if height > 0 else h
 
-        newW = newW * scale_factor
-        newH = newH * scale_factor
+        newW = int(newW * scale_factor)
+        newH = int(newH * scale_factor)
         
         pil_img = pil_img.convert("L").resize((newW, newH))
 
