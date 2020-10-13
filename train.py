@@ -135,6 +135,8 @@ def get_args():
                         help='Learning rate', dest='lr')
     parser.add_argument('-f', '--load', dest='load', type=str, default=False,
                         help='Load model from a .pth file')
+    parser.add_argument('-s', '--scale', dest='scale', type=float, default=0.5,
+                        help='Downscaling factor of the images. Takes priority over resize')
     parser.add_argument('-r', '--resize', dest='resize_string', type=str,
                         help='Size images should be resized to, in format: NxM. Example: 24x24')
     parser.add_argument('-v', '--validation', dest='val', type=float, default=10.0,

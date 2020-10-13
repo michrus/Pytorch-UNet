@@ -70,6 +70,8 @@ def get_args():
     parser.add_argument('--mask-threshold', '-t', type=float,
                         help="Minimum probability value to consider a mask pixel white",
                         default=0.5)
+    parser.add_argument('-s', '--scale', dest='scale', type=float, default=0.5,
+                        help='Downscaling factor of the images. Takes priority over resize')
     parser.add_argument('-r', '--resize', dest='resize_string', type=str,
                         help='Size images should be resized to, in format: NxM. Example: 24x24')
 
