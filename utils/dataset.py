@@ -38,7 +38,7 @@ class BasicDataset(Dataset):
         newW = int(newW * scale_factor)
         newH = int(newH * scale_factor)
         
-        pil_img = pil_img.convert("RGB").resize((newW, newH))
+        pil_img = pil_img.resize((newW, newH))
 
         img_nd = np.array(pil_img)
 
