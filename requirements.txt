@@ -3,8 +3,8 @@ numpy==1.19.2
 Pillow==7.2.0
 
 -f https://download.pytorch.org/whl/torch_stable.html
-torch==1.3.1+cpu
-torchvision==0.4.2+cpu
+torch==1.3.1
+torchvision==0.4.2
 
 future
 tqdm==4.50.2
