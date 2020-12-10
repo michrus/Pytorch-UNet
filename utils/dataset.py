@@ -71,6 +71,9 @@ class BasicDataset(Dataset):
         # Standardize image
         if (dataset_mean is not None) and (dataset_std is not None):
             img_nd = (img_nd - dataset_mean) / dataset_std
+            img_nd = np.clip(img_nd, -1.0, 1.0)
+            # shift from [-1,1] to [0,1]
+            img_nd = (img_nd + 1.0) / 2.0
 
         # HWC to CHW
         img_trans = img_nd.transpose((2, 0, 1))
