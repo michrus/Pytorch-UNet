@@ -26,11 +26,34 @@ class BasicDataset(Dataset):
                     if not file.startswith('.')]
         logging.info(f'Creating dataset with {len(self.ids)} examples')
 
+        img_files = glob(self.imgs_dir + '*.*')
+        mean_std = self.get_dataset_mean_std(img_files)
+        self.dataset_mean = mean_std["mean"]
+        self.dataset_std = mean_std["std"]
+
     def __len__(self):
         return len(self.ids)
 
     @classmethod
-    def preprocess(cls, pil_img, width, height, scale_factor):
+    def get_dataset_mean_std(cls, image_paths_list):
+        
+        image_paths_first, *image_paths_rest = image_paths_list
+        first_image = np.array(Image.open(image_paths_first))
+        pixel_sum = first_image.sum(axis=(0,1))
+        for image_path in image_paths_rest:
+            pixel_sum += np.array(Image.open(image_path)).sum(axis=(0,1))
+        mean_denominator = first_image.shape[0]*first_image.shape[1]*len(image_paths_list)
+        mean = pixel_sum.astype("float64") / mean_denominator
+
+        pixel_var_sum = first_image.var(axis=(0,1), dtype="float64")
+        for image_path in image_paths_rest:
+            pixel_var_sum += np.array(Image.open(image_path)).var(axis=(0,1), dtype="float64")
+        std = np.sqrt(pixel_var_sum / len(image_paths_list))
+
+        return {"mean": mean, "std": std}
+
+    @classmethod
+    def preprocess(cls, pil_img, width, height, scale_factor, dataset_mean=None, dataset_std=None):
         w, h = pil_img.size
         newW = width if width > 0 else w
         newH = height if height > 0 else h
@@ -44,6 +67,10 @@ class BasicDataset(Dataset):
 
         if len(img_nd.shape) == 2:
             img_nd = np.expand_dims(img_nd, axis=2)
+
+        # Standardize image
+        if (dataset_mean is not None) and (dataset_std is not None):
+            img_nd = (img_nd - dataset_mean) / dataset_std
 
         # HWC to CHW
         img_trans = img_nd.transpose((2, 0, 1))
@@ -67,7 +94,8 @@ class BasicDataset(Dataset):
         assert img.size == mask.size, \
             f'Image and mask {idx} should be the same size, but are {img.size} and {mask.size}'
 
-        img = self.preprocess(img, self.width, self.height, self.scale_factor)
+        img = self.preprocess(img, self.width, self.height, self.scale_factor, 
+                              self.dataset_mean, self.dataset_std)
         mask = self.preprocess(mask, self.width, self.height, self.scale_factor)
 
         return {
