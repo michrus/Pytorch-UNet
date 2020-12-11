@@ -28,7 +28,8 @@ def validation_only(net,
                     img_height=0,
                     img_scale=1.0):
 
-    dataset = BasicDataset(dir_img_test, dir_mask_test, img_width, img_height, img_scale)
+    dataset = BasicDataset(dir_img_test, dir_mask_test, img_width, img_height, img_scale,
+                           load_statistics=True, save_statistics=True)
     val_loader = DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=8, pin_memory=True, drop_last=True)
     val_score = eval_net(net, val_loader, device)
     if net.n_classes > 1:
@@ -47,7 +48,8 @@ def train_net(net,
               img_height=0,
               img_scale=1.0):
 
-    dataset = BasicDataset(dir_img_train, dir_mask_train, img_width, img_height, img_scale)
+    dataset = BasicDataset(dir_img_train, dir_mask_train, img_width, img_height, img_scale,
+                           load_statistics=True, save_statistics=True)
     n_val = int(len(dataset) * val_percent)
     n_train = len(dataset) - n_val
     train, val = random_split(dataset, [n_train, n_val])

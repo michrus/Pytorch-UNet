@@ -1,15 +1,19 @@
 from os.path import splitext
 from os import listdir
+from os.path import exists as os_path_exists
+import pathlib
 import numpy as np
 from glob import glob
 import torch
 from torch.utils.data import Dataset
 import logging
 from PIL import Image
+import json
 
 
 class BasicDataset(Dataset):
-    def __init__(self, imgs_dir, masks_dir, width=0, height=0, scale_factor=1.0, mask_suffix=''):
+    def __init__(self, imgs_dir, masks_dir, width=0, height=0, scale_factor=1.0, mask_suffix='', 
+                 load_statistics=False, save_statistics=False):
         self.imgs_dir = imgs_dir
         self.masks_dir = masks_dir
         self.width = width
@@ -26,30 +30,46 @@ class BasicDataset(Dataset):
                     if not file.startswith('.')]
         logging.info(f'Creating dataset with {len(self.ids)} examples')
 
-        img_files = glob(self.imgs_dir + '*.*')
-        mean_std = self.get_dataset_mean_std(img_files)
-        self.dataset_mean = mean_std["mean"]
-        self.dataset_std = mean_std["std"]
+        json_path = pathlib.Path(imgs_dir).parent / "statistics.json"
+        if os_path_exists(json_path) and load_statistics:
+            save_statistics = False
+            with open(json_path) as json_file:
+                dataset_statistics = json.load(json_file)
+        else: 
+            img_files = glob(self.imgs_dir + '*.*')
+            dataset_statistics = self.get_dataset_mean_std(img_files)
+        self.dataset_mean = dataset_statistics["mean"]
+        self.dataset_std = dataset_statistics["std"]
+        logging.info(f'Dataset pixel mean: {self.dataset_mean}')
+        logging.info(f'Dataset pixel std: {self.dataset_std}')
+        if save_statistics:
+            with open(json_path, 'w+') as json_file:
+                json_statistics = {}
+                json_statistics["mean"] = list(self.dataset_mean)
+                json_statistics["std"] = list(self.dataset_std)
+                json.dump(json_statistics, json_file)
 
     def __len__(self):
         return len(self.ids)
 
     @classmethod
     def get_dataset_mean_std(cls, image_paths_list):
+        logging.info(f'Calculating dataset mean and standard deviation.')
         
-        image_paths_first, *image_paths_rest = image_paths_list
-        first_image = np.array(Image.open(image_paths_first))
-        pixel_sum = first_image.sum(axis=(0,1))
-        for image_path in image_paths_rest:
-            pixel_sum += np.array(Image.open(image_path)).sum(axis=(0,1))
-        mean_denominator = first_image.shape[0]*first_image.shape[1]*len(image_paths_list)
-        mean = pixel_sum.astype("float64") / mean_denominator
-
-        pixel_var_sum = first_image.var(axis=(0,1), dtype="float64")
-        for image_path in image_paths_rest:
+        num_channels = np.array(Image.open(image_paths_list[0])).shape[-1]
+        # pixel sum depending on number of channels
+        pixel_sum = np.zeros(num_channels, dtype="float64")
+        mean_denominator = 0
+        pixel_var_sum = np.zeros(num_channels, dtype="float64")
+        for image_path in image_paths_list:
+            image_np = np.array(Image.open(image_path))
+            pixel_sum += image_np.sum(axis=(0,1))
+            mean_denominator += image_np.shape[0]*image_np.shape[1]
             pixel_var_sum += np.array(Image.open(image_path)).var(axis=(0,1), dtype="float64")
+        
+        mean = pixel_sum.astype("float64") / mean_denominator
         std = np.sqrt(pixel_var_sum / len(image_paths_list))
-
+            
         return {"mean": mean, "std": std}
 
     @classmethod
