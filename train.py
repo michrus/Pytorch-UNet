@@ -26,9 +26,10 @@ def validation_only(net,
                     batch_size=1,
                     img_width=0, 
                     img_height=0,
-                    img_scale=1.0):
+                    img_scale=1.0,
+                    use_bw=False):
 
-    dataset = BasicDataset(dir_img_test, dir_mask_test, img_width, img_height, img_scale,
+    dataset = BasicDataset(dir_img_test, dir_mask_test, img_width, img_height, img_scale, use_bw,
                            load_statistics=True, save_statistics=True)
     val_loader = DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=8, pin_memory=True, drop_last=True)
     val_score = eval_net(net, val_loader, device)
@@ -46,9 +47,10 @@ def train_net(net,
               save_cp=True,
               img_width=0, 
               img_height=0,
-              img_scale=1.0):
+              img_scale=1.0,
+              use_bw=False):
 
-    dataset = BasicDataset(dir_img_train, dir_mask_train, img_width, img_height, img_scale,
+    dataset = BasicDataset(dir_img_train, dir_mask_train, img_width, img_height, img_scale, use_bw,
                            load_statistics=True, save_statistics=True)
     n_val = int(len(dataset) * val_percent)
     n_train = len(dataset) - n_val
@@ -148,6 +150,8 @@ def get_args():
                         help='Percent of the data that is used as validation (0-100)')
     parser.add_argument('-t', '--test', dest='test', action='store_true',
                         help='Perform validation only and display score')
+    parser.add_argument('--bw', dest='use_bw', action='store_true',
+                        help='Use black-white images')
 
     return parser.parse_args()
 
@@ -160,11 +164,16 @@ if __name__ == '__main__':
 
     # Change here to adapt to your data
     # n_channels=3 for RGB images
+    # n_channels=1 for B-W images
     # n_classes is the number of probabilities you want to get per pixel
     #   - For 1 class and background, use n_classes=1
     #   - For 2 classes, use n_classes=1
     #   - For N > 2 classes, use n_classes=N
-    net = UNet(n_channels=3, n_classes=1, bilinear=True)
+    if args.use_bw:
+        n_channels = 1
+    else:
+        n_channels = 3
+    net = UNet(n_channels=n_channels, n_classes=1, bilinear=True)
     logging.info(f'Network:\n'
                  f'\t{net.n_channels} input channels\n'
                  f'\t{net.n_classes} output channels (classes)\n'
@@ -195,7 +204,8 @@ if __name__ == '__main__':
                             batch_size=args.batchsize,
                             img_width=img_width,
                             img_height=img_height,
-                            img_scale=args.scale) 
+                            img_scale=args.scale,
+                            use_bw=args.use_bw) 
         else:
             train_net(net=net,
                       epochs=args.epochs,
@@ -205,6 +215,7 @@ if __name__ == '__main__':
                       img_width=img_width,
                       img_height=img_height,
                       img_scale=args.scale,
+                      use_bw=args.use_bw,
                       val_percent=args.val / 100)
     except KeyboardInterrupt:
         torch.save(net.state_dict(), 'INTERRUPTED.pth')

@@ -12,13 +12,14 @@ import json
 
 
 class BasicDataset(Dataset):
-    def __init__(self, imgs_dir, masks_dir, width=0, height=0, scale_factor=1.0, mask_suffix='', 
+    def __init__(self, imgs_dir, masks_dir, width=0, height=0, scale_factor=1.0, use_bw=False, mask_suffix='', 
                  load_statistics=False, save_statistics=False):
         self.imgs_dir = imgs_dir
         self.masks_dir = masks_dir
         self.width = width
         self.height = height
         self.scale_factor = scale_factor
+        self.use_bw = use_bw
         self.mask_suffix = mask_suffix
 
         if width <= 0:
@@ -37,7 +38,11 @@ class BasicDataset(Dataset):
                 dataset_statistics = json.load(json_file)
         else: 
             img_files = glob(self.imgs_dir + '*.*')
-            dataset_statistics = self.get_dataset_mean_std(img_files)
+            dataset_statistics = self.get_dataset_mean_std(img_files, 
+                                                           self.width, 
+                                                           self.height, 
+                                                           self.scale_factor,
+                                                           self.use_bw)
         self.dataset_mean = dataset_statistics["mean"]
         self.dataset_std = dataset_statistics["std"]
         logging.info(f'Dataset pixel mean: {self.dataset_mean}')
@@ -53,16 +58,31 @@ class BasicDataset(Dataset):
         return len(self.ids)
 
     @classmethod
-    def get_dataset_mean_std(cls, image_paths_list):
+    def scale_image(cls, pil_img, width, height, scale_factor):
+        w, h = pil_img.size
+        newW = width if width > 0 else w
+        newH = height if height > 0 else h
+
+        newW = int(newW * scale_factor)
+        newH = int(newH * scale_factor)
+        
+        return pil_img.resize((newW, newH))
+
+    @classmethod
+    def get_dataset_mean_std(cls, image_paths_list, width, height, scale_factor, use_bw=False):
         logging.info(f'Calculating dataset mean and standard deviation.')
         
-        num_channels = np.array(Image.open(image_paths_list[0])).shape[-1]
+        num_channels = 1 if use_bw else 3
         # pixel sum depending on number of channels
         pixel_sum = np.zeros(num_channels, dtype="float64")
         mean_denominator = 0
         pixel_var_sum = np.zeros(num_channels, dtype="float64")
         for image_path in image_paths_list:
-            image_np = np.array(Image.open(image_path))
+            pil_image = Image.open(image_path)
+            if use_bw:
+                pil_image = pil_image.convert('LA')
+            pil_image = cls.scale_image(pil_image, width, height, scale_factor)
+            image_np = np.array(pil_image)
             pixel_sum += image_np.sum(axis=(0,1))
             mean_denominator += image_np.shape[0]*image_np.shape[1]
             pixel_var_sum += np.array(Image.open(image_path)).var(axis=(0,1), dtype="float64")
@@ -73,15 +93,10 @@ class BasicDataset(Dataset):
         return {"mean": mean, "std": std}
 
     @classmethod
-    def preprocess(cls, pil_img, width, height, scale_factor, dataset_mean=None, dataset_std=None):
-        w, h = pil_img.size
-        newW = width if width > 0 else w
-        newH = height if height > 0 else h
-
-        newW = int(newW * scale_factor)
-        newH = int(newH * scale_factor)
-        
-        pil_img = pil_img.resize((newW, newH))
+    def preprocess(cls, pil_img, width, height, scale_factor, use_bw=False, dataset_mean=None, dataset_std=None):
+        if use_bw:
+            pil_img = pil_img.convert('LA')
+        pil_img = cls.scale_image(pil_img, width, height, scale_factor)
 
         img_nd = np.array(pil_img)
 
@@ -97,8 +112,6 @@ class BasicDataset(Dataset):
 
         # HWC to CHW
         img_trans = img_nd.transpose((2, 0, 1))
-        if img_trans.max() > 1:
-            img_trans = img_trans / 255
 
         return img_trans
 
