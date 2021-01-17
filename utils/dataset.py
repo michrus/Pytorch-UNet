@@ -56,6 +56,8 @@ class BasicDataset(Dataset):
             
             if save_statistics:
                 self.save_dataset_statistics(json_path, self.dataset_mean,self.dataset_std)
+        else:
+            logging.info('Dataset standardization is disabled')
 
     def __len__(self):
         return len(self.ids)
