@@ -217,7 +217,7 @@ if __name__ == '__main__':
                             img_scale=args.scale,
                             use_bw=args.use_bw,
                             standardize=args.standardize,
-                            compute_statistics=compute_statistics) 
+                            compute_statistics=args.compute_statistics) 
         else:
             train_net(net=net,
                       epochs=args.epochs,
@@ -229,7 +229,7 @@ if __name__ == '__main__':
                       img_scale=args.scale,
                       use_bw=args.use_bw,
                       standardize=args.standardize,
-                      compute_statistics=compute_statistics,
+                      compute_statistics=args.compute_statistics,
                       val_percent=args.val / 100)
     except KeyboardInterrupt:
         torch.save(net.state_dict(), 'INTERRUPTED.pth')
