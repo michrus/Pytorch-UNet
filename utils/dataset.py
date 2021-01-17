@@ -85,7 +85,7 @@ class BasicDataset(Dataset):
             if use_bw:
                 pil_image = pil_image.convert('L')
             pil_image = cls.scale_image(pil_image, width, height, scale_factor)
-            image_np = np.array(pil_image)
+            image_np = np.array(pil_image) / 255
             pixel_sum += image_np.sum(axis=(0,1))
             mean_denominator += image_np.shape[0]*image_np.shape[1]
             pixel_var_sum += image_np.var(axis=(0,1), dtype="float64")
@@ -101,7 +101,8 @@ class BasicDataset(Dataset):
             pil_img = pil_img.convert('L')
         pil_img = cls.scale_image(pil_img, width, height, scale_factor)
 
-        img_nd = np.array(pil_img)
+        # Normalize image
+        img_nd = np.array(pil_img) / 255
 
         if len(img_nd.shape) == 2:
             img_nd = np.expand_dims(img_nd, axis=2)
@@ -115,8 +116,6 @@ class BasicDataset(Dataset):
 
         # HWC to CHW
         img_trans = img_nd.transpose((2, 0, 1))
-        if img_trans.max() > 1:
-            img_trans = img_trans / 255
 
         return img_trans
 
