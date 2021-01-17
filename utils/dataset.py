@@ -80,7 +80,7 @@ class BasicDataset(Dataset):
         for image_path in image_paths_list:
             pil_image = Image.open(image_path)
             if use_bw:
-                pil_image = pil_image.convert('LA')
+                pil_image = pil_image.convert('L')
             pil_image = cls.scale_image(pil_image, width, height, scale_factor)
             image_np = np.array(pil_image)
             pixel_sum += image_np.sum(axis=(0,1))
@@ -95,7 +95,7 @@ class BasicDataset(Dataset):
     @classmethod
     def preprocess(cls, pil_img, width, height, scale_factor, use_bw=False, dataset_mean=None, dataset_std=None):
         if use_bw:
-            pil_img = pil_img.convert('LA')
+            pil_img = pil_img.convert('L')
         pil_img = cls.scale_image(pil_img, width, height, scale_factor)
 
         img_nd = np.array(pil_img)
