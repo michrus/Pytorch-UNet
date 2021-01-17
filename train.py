@@ -216,7 +216,7 @@ if __name__ == '__main__':
                             img_height=img_height,
                             img_scale=args.scale,
                             use_bw=args.use_bw,
-                            standardize=args.standardize
+                            standardize=args.standardize,
                             compute_statistics=compute_statistics) 
         else:
             train_net(net=net,
