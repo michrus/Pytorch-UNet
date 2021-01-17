@@ -13,14 +13,18 @@ import json
 
 class BasicDataset(Dataset):
     def __init__(self, imgs_dir, masks_dir, width=0, height=0, scale_factor=1.0, use_bw=False, mask_suffix='', 
-                 load_statistics=False, save_statistics=False):
+                 standardize=False, load_statistics=False, save_statistics=False):
         self.imgs_dir = imgs_dir
         self.masks_dir = masks_dir
         self.width = width
         self.height = height
         self.scale_factor = scale_factor
         self.use_bw = use_bw
+        self.standardize = standardize
         self.mask_suffix = mask_suffix
+
+        self.dataset_mean = None
+        self.dataset_std = None
 
         if width <= 0:
             logging.warning("Using original image width")
@@ -31,28 +35,27 @@ class BasicDataset(Dataset):
                     if not file.startswith('.')]
         logging.info(f'Creating dataset with {len(self.ids)} examples')
 
-        json_path = pathlib.Path(imgs_dir).parent / "statistics.json"
-        if os_path_exists(json_path) and load_statistics:
-            save_statistics = False
-            with open(json_path) as json_file:
-                dataset_statistics = json.load(json_file)
-        else: 
-            img_files = glob(self.imgs_dir + '*.*')
-            dataset_statistics = self.get_dataset_mean_std(img_files, 
-                                                           self.width, 
-                                                           self.height, 
-                                                           self.scale_factor,
-                                                           self.use_bw)
-        self.dataset_mean = dataset_statistics["mean"]
-        self.dataset_std = dataset_statistics["std"]
-        logging.info(f'Dataset pixel mean: {self.dataset_mean}')
-        logging.info(f'Dataset pixel std: {self.dataset_std}')
-        if save_statistics:
-            with open(json_path, 'w+') as json_file:
-                json_statistics = {}
-                json_statistics["mean"] = list(self.dataset_mean)
-                json_statistics["std"] = list(self.dataset_std)
-                json.dump(json_statistics, json_file)
+        if standardize:
+            dataset_statistics = None
+            json_path = pathlib.Path(imgs_dir).parent / "statistics.json"
+            
+            if load_statistics:
+                dataset_statistics = self.load_dataset_statistics(json_path)
+            
+            if not dataset_statistics:
+                img_files = glob(self.imgs_dir + '*.*')
+                dataset_statistics = self.get_dataset_mean_std(img_files, 
+                                                                width, 
+                                                                height, 
+                                                                scale_factor,
+                                                                use_bw)
+            self.dataset_mean = dataset_statistics["mean"]
+            self.dataset_std = dataset_statistics["std"]
+            logging.info(f'Dataset pixel mean: {self.dataset_mean}')
+            logging.info(f'Dataset pixel std: {self.dataset_std}')
+            
+            if save_statistics:
+                self.save_dataset_statistics(json_path, self.dataset_mean,self.dataset_std)
 
     def __len__(self):
         return len(self.ids)
@@ -116,6 +119,24 @@ class BasicDataset(Dataset):
             img_trans = img_trans / 255
 
         return img_trans
+
+    def load_dataset_statistics(self, json_path):
+        if os_path_exists(json_path):
+            save_statistics = False
+            with open(json_path) as json_file:
+                dataset_statistics = json.load(json_file)
+        else:
+            logging.warning(f"WARNING! {json_path} not found!")
+            dataset_statistics = None
+        return dataset_statistics
+
+    def save_dataset_statistics(self, json_path, dataset_mean, dataset_std):
+        with open(json_path, 'w+') as json_file:
+            json_statistics = {}
+            json_statistics["mean"] = list(dataset_mean)
+            json_statistics["std"] = list(dataset_std)
+            json.dump(json_statistics, json_file)
+            logging.info(f'Saved dataset statistics to {json_path}')
 
     def __getitem__(self, i):
         idx = self.ids[i]
