@@ -85,7 +85,7 @@ class BasicDataset(Dataset):
             image_np = np.array(pil_image)
             pixel_sum += image_np.sum(axis=(0,1))
             mean_denominator += image_np.shape[0]*image_np.shape[1]
-            pixel_var_sum += np.array(Image.open(image_path)).var(axis=(0,1), dtype="float64")
+            pixel_var_sum += image_np.var(axis=(0,1), dtype="float64")
         
         mean = pixel_sum.astype("float64") / mean_denominator
         std = np.sqrt(pixel_var_sum / len(image_paths_list))
