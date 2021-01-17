@@ -162,6 +162,9 @@ def get_args():
                         help='Standardize images based on dataset mean and std values')
     parser.add_argument('--compute_statistics', dest='compute_statistics', action='store_true',
                         help='Calculate dataset statistics even if there\'s json file present')
+    parser.add_argument('--cpu', dest='force_cpu', action='store_true',
+                        help='Use cpu even if gpu is available')
+    
 
     return parser.parse_args()
 
@@ -169,7 +172,7 @@ def get_args():
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
     args = get_args()
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cuda' if torch.cuda.is_available() and not args.force_cpu else 'cpu')
     logging.info(f'Using device {device}')
 
     # Change here to adapt to your data
