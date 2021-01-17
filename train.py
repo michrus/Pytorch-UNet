@@ -28,10 +28,12 @@ def validation_only(net,
                     img_height=0,
                     img_scale=1.0,
                     use_bw=False,
-                    standardize=False):
+                    standardize=False,
+                    compute_statistics=False):
 
+    load_statstics = not compute_statistics
     dataset = BasicDataset(dir_img_test, dir_mask_test, img_width, img_height, img_scale, use_bw,
-                           standardize=standardize, load_statistics=True, save_statistics=True)
+                           standardize=standardize, load_statistics=load_statstics, save_statistics=True)
     val_loader = DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=8, pin_memory=True, drop_last=True)
     val_score = eval_net(net, val_loader, device)
     if net.n_classes > 1:
@@ -50,10 +52,12 @@ def train_net(net,
               img_height=0,
               img_scale=1.0,
               use_bw=False,
-              standardize=False):
+              standardize=False,
+              compute_statistics=False):
 
+    load_statstics = not compute_statistics
     dataset = BasicDataset(dir_img_train, dir_mask_train, img_width, img_height, img_scale, use_bw,
-                           standardize=standardize, load_statistics=True, save_statistics=True)
+                           standardize=standardize, load_statistics=load_statstics, save_statistics=True)
     n_val = int(len(dataset) * val_percent)
     n_train = len(dataset) - n_val
     train, val = random_split(dataset, [n_train, n_val])
@@ -156,6 +160,8 @@ def get_args():
                         help='Use black-white images')
     parser.add_argument('--standardize', dest='standardize', action='store_true',
                         help='Standardize images based on dataset mean and std values')
+    parser.add_argument('--compute_statistics', dest='compute_statistics', action='store_true',
+                        help='Calculate dataset statistics even if there\'s json file present')
 
     return parser.parse_args()
 
@@ -210,7 +216,8 @@ if __name__ == '__main__':
                             img_height=img_height,
                             img_scale=args.scale,
                             use_bw=args.use_bw,
-                            standardize=args.standardize) 
+                            standardize=args.standardize
+                            compute_statistics=compute_statistics) 
         else:
             train_net(net=net,
                       epochs=args.epochs,
@@ -222,6 +229,7 @@ if __name__ == '__main__':
                       img_scale=args.scale,
                       use_bw=args.use_bw,
                       standardize=args.standardize,
+                      compute_statistics=compute_statistics,
                       val_percent=args.val / 100)
     except KeyboardInterrupt:
         torch.save(net.state_dict(), 'INTERRUPTED.pth')
