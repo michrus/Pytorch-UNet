@@ -15,10 +15,13 @@ from unet import UNet
 from utils.dataset import BasicDataset
 from torch.utils.data import DataLoader, random_split
 
-dir_img_train = 'data/train/imgs/'
-dir_mask_train = 'data/train/masks/'
-dir_img_test = 'data/test/imgs/'
-dir_mask_test = 'data/test/masks/'
+default_train_dir = "data/train"
+default_test_dir = "data/test"
+
+dir_img_train = f'{default_train_dir}/imgs/'
+dir_mask_train = f'{default_train_dir}/masks/'
+dir_img_test = f'{default_test_dir}/imgs/'
+dir_mask_test = f'{default_test_dir}/masks/'
 dir_checkpoint = 'checkpoints/'
 
 def validation_only(net,
@@ -164,7 +167,10 @@ def get_args():
                         help='Calculate dataset statistics even if there\'s json file present')
     parser.add_argument('--cpu', dest='force_cpu', action='store_true',
                         help='Use cpu even if gpu is available')
-    
+    parser.add_argument('--train_data', dest='train_dir', type=str, default=default_train_dir,
+                        help='Path to training data dir')
+    parser.add_argument('--test_data', dest='test_dir', type=str, default=default_test_dir,
+                        help='Path to training data dir')
 
     return parser.parse_args()
 
@@ -174,6 +180,14 @@ if __name__ == '__main__':
     args = get_args()
     device = torch.device('cuda' if torch.cuda.is_available() and not args.force_cpu else 'cpu')
     logging.info(f'Using device {device}')
+
+    # Set train and test data directories
+    if args.train_data:
+        dir_img_train = f'{args.train_data}/imgs/'
+        dir_mask_train = f'{args.train_data}/masks/'
+    if args.test_data:
+        dir_img_test = f'{args.test_data}/imgs/'
+        dir_mask_test = f'{args.test_data}/masks/'
 
     # Change here to adapt to your data
     # n_channels=3 for RGB images
