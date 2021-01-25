@@ -182,12 +182,12 @@ if __name__ == '__main__':
     logging.info(f'Using device {device}')
 
     # Set train and test data directories
-    if args.train_data:
-        dir_img_train = f'{args.train_data}/imgs/'
-        dir_mask_train = f'{args.train_data}/masks/'
-    if args.test_data:
-        dir_img_test = f'{args.test_data}/imgs/'
-        dir_mask_test = f'{args.test_data}/masks/'
+    if args.train_dir:
+        dir_img_train = f'{args.train_dir}/imgs/'
+        dir_mask_train = f'{args.train_dir}/masks/'
+    if args.test_dir:
+        dir_img_test = f'{args.test_dir}/imgs/'
+        dir_mask_test = f'{args.test_dir}/masks/'
 
     # Change here to adapt to your data
     # n_channels=3 for RGB images
